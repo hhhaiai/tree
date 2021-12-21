@@ -30,3 +30,5 @@ target/
 __MACOSX
 .DS_Store
 
+*.o
+tree

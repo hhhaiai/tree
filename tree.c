@@ -105,6 +105,9 @@ int main(int argc, char **argv)
   dirs[0] = 0;
   Level = -1;
 
+  // add from sanbo begin
+  force_color=TRUE;
+  // add from sanbo end
   setlocale(LC_CTYPE, "");
   setlocale(LC_COLLATE, "");
 

@@ -58,117 +58,165 @@ off_t json_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
   struct stat sb;
   int t, n, mt;
 
-  if ((Level >= 0) && (lev > Level)) {
-    if (!noindent) fputc('\n',outfile);
+  if ((Level >= 0) && (lev > Level))
+  {
+    if (!noindent)
+      fputc('\n', outfile);
     return 0;
   }
 
-  if (xdev && lev == 0) {
-    stat(d,&sb);
+  if (xdev && lev == 0)
+  {
+    stat(d, &sb);
     dev = sb.st_dev;
   }
 
-  sav = dir = read_dir(d,&n);
-  if (!dir && n) {
-    fprintf(outfile,"{\"error\": \"opening dir\"}%s",noindent?"":"\n");
+  sav = dir = read_dir(d, &n);
+  if (!dir && n)
+  {
+    fprintf(outfile, "{\"error\": \"opening dir\"}%s", noindent ? "" : "\n");
     return 0;
   }
-  if (!n) {
-    if (!noindent) fputc('\n', outfile);
+  if (!n)
+  {
+    if (!noindent)
+      fputc('\n', outfile);
     free_dir(sav);
     return 0;
   }
-  if (flimit > 0 && n > flimit) {
-    fprintf(outfile,", \"error\": \"%d entries exceeds filelimit, not opening dir\"\n",n);
+  if (flimit > 0 && n > flimit)
+  {
+    fprintf(outfile, ", \"error\": \"%d entries exceeds filelimit, not opening dir\"\n", n);
     free_dir(sav);
     return 0;
   }
 
-  if (cmpfunc) qsort(dir,n,sizeof(struct _info *),cmpfunc);
-  if (lev >= maxdirs-1) {
-    dirs = xrealloc(dirs,sizeof(int) * (maxdirs += 1024));
-    memset(dirs+(maxdirs-1024), 0, sizeof(int) * 1024);
+  if (cmpfunc)
+    qsort(dir, n, sizeof(struct _info *), cmpfunc);
+  if (lev >= maxdirs - 1)
+  {
+    dirs = xrealloc(dirs, sizeof(int) * (maxdirs += 1024));
+    memset(dirs + (maxdirs - 1024), 0, sizeof(int) * 1024);
   }
   dirs[lev] = 1;
-  if (!*(dir+1)) dirs[lev] = 2;
-  if (!noindent) fprintf(outfile,"\n");
+  if (!*(dir + 1))
+    dirs[lev] = 2;
+  if (!noindent)
+    fprintf(outfile, "\n");
 
-  path = malloc(pathsize=4096);
+  path = malloc(pathsize = 4096);
 
-  while(*dir) {
-    if (!noindent) json_indent(lev);
+  while (*dir)
+  {
+    if (!noindent)
+      json_indent(lev);
 
-    if ((*dir)->lnk) mt = (*dir)->mode & S_IFMT;
-    else mt = (*dir)->mode & S_IFMT;
-    for(t=0;ifmt[t];t++)
-      if (ifmt[t] == mt) break;
-    fprintf(outfile,"{\"type\":\"%s\"", ftype[t]);
+    if ((*dir)->lnk)
+      mt = (*dir)->mode & S_IFMT;
+    else
+      mt = (*dir)->mode & S_IFMT;
+    for (t = 0; ifmt[t]; t++)
+      if (ifmt[t] == mt)
+        break;
+    fprintf(outfile, "{\"type\":\"%s\"", ftype[t]);
 
-    if (fflag) {
-      if (sizeof(char) * (strlen(d)+strlen((*dir)->name)+2) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen(d)+strlen((*dir)->name)+1024)));
-      if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-      else sprintf(path,"%s/%s",d,(*dir)->name);
-    } else {
-      if (sizeof(char) * (strlen((*dir)->name)+1) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen((*dir)->name)+1024)));
-      sprintf(path,"%s",(*dir)->name);
+    if (fflag)
+    {
+      if (sizeof(char) * (strlen(d) + strlen((*dir)->name) + 2) > pathsize)
+        path = xrealloc(path, pathsize = (sizeof(char) * (strlen(d) + strlen((*dir)->name) + 1024)));
+      if (!strcmp(d, "/"))
+        sprintf(path, "%s%s", d, (*dir)->name);
+      else
+        sprintf(path, "%s/%s", d, (*dir)->name);
+    }
+    else
+    {
+      if (sizeof(char) * (strlen((*dir)->name) + 1) > pathsize)
+        path = xrealloc(path, pathsize = (sizeof(char) * (strlen((*dir)->name) + 1024)));
+      sprintf(path, "%s", (*dir)->name);
     }
 
     fprintf(outfile, ",\"name\":\"");
-    html_encode(outfile,path);
-    fputc('"',outfile);
+    html_encode(outfile, path);
+    fputc('"', outfile);
 
-    if ((*dir)->lnk) {
+    if ((*dir)->lnk)
+    {
       fprintf(outfile, ",\"target\":\"");
-      html_encode(outfile,(*dir)->lnk);
-      fputc('"',outfile);
+      html_encode(outfile, (*dir)->lnk);
+      fputc('"', outfile);
     }
     json_fillinfo(*dir);
-    if (!(*dir)->isdir && !(*dir)->lnk) {
-      fputc('}',outfile);
-      if (*(dir+1)) fputc(',',outfile);
-    } else
+    if (!(*dir)->isdir && !(*dir)->lnk)
+    {
+      fputc('}', outfile);
+      if (*(dir + 1))
+        fputc(',', outfile);
+    }
+    else
       fprintf(outfile, ",\"contents\":[");
 
-    if ((*dir)->isdir) {
-      if ((*dir)->lnk) {
-	if (lflag && !(xdev && dev != (*dir)->dev)) {
-	  if (findino((*dir)->inode,(*dir)->dev)) {
-	    fprintf(outfile,"{\"error\":\"recursive, not followed\"}");
-	  } else {
-	    saveino((*dir)->inode, (*dir)->dev);
-	    if (*(*dir)->lnk == '/')
-	      listdir((*dir)->lnk,dt,ft,lev+1,dev);
-	    else {
-	      if (strlen(d)+strlen((*dir)->lnk)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	      if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->lnk);
-	      else sprintf(path,"%s/%s",d,(*dir)->lnk);
-	      listdir(path,dt,ft,lev+1,dev);
-	    }
-	    nlf = TRUE;
-	  }
-	}
-      } else if (!(xdev && dev != (*dir)->dev)) {
-	if (strlen(d)+strlen((*dir)->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-	else sprintf(path,"%s/%s",d,(*dir)->name);
-	saveino((*dir)->inode, (*dir)->dev);
-	listdir(path,dt,ft,lev+1,dev);
-	nlf = TRUE;
+    if ((*dir)->isdir)
+    {
+      if ((*dir)->lnk)
+      {
+        if (lflag && !(xdev && dev != (*dir)->dev))
+        {
+          if (findino((*dir)->inode, (*dir)->dev))
+          {
+            fprintf(outfile, "{\"error\":\"recursive, not followed\"}");
+          }
+          else
+          {
+            saveino((*dir)->inode, (*dir)->dev);
+            if (*(*dir)->lnk == '/')
+              listdir((*dir)->lnk, dt, ft, lev + 1, dev);
+            else
+            {
+              if (strlen(d) + strlen((*dir)->lnk) + 2 > pathsize)
+                path = xrealloc(path, pathsize = (strlen(d) + strlen((*dir)->name) + 1024));
+              if (fflag && !strcmp(d, "/"))
+                sprintf(path, "%s%s", d, (*dir)->lnk);
+              else
+                sprintf(path, "%s/%s", d, (*dir)->lnk);
+              listdir(path, dt, ft, lev + 1, dev);
+            }
+            nlf = TRUE;
+          }
+        }
+      }
+      else if (!(xdev && dev != (*dir)->dev))
+      {
+        if (strlen(d) + strlen((*dir)->name) + 2 > pathsize)
+          path = xrealloc(path, pathsize = (strlen(d) + strlen((*dir)->name) + 1024));
+        if (fflag && !strcmp(d, "/"))
+          sprintf(path, "%s%s", d, (*dir)->name);
+        else
+          sprintf(path, "%s/%s", d, (*dir)->name);
+        saveino((*dir)->inode, (*dir)->dev);
+        listdir(path, dt, ft, lev + 1, dev);
+        nlf = TRUE;
       }
       *dt += 1;
-    } else *ft += 1;
-    if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;
-    if (nlf) {
+    }
+    else
+      *ft += 1;
+    if (*(dir + 1) && !*(dir + 2))
+      dirs[lev] = 2;
+    if (nlf)
+    {
       nlf = FALSE;
-      if (!noindent) json_indent(lev);
+      if (!noindent)
+        json_indent(lev);
     }
-    if ((*dir)->isdir || (*dir)->lnk) {
+    if ((*dir)->isdir || (*dir)->lnk)
+    {
       fprintf(outfile, "]}");
-      if (*(dir+1)) fputc(',',outfile);
+      if (*(dir + 1))
+        fputc(',', outfile);
     }
-    if (!noindent) fputc('\n', outfile);
+    if (!noindent)
+      fputc('\n', outfile);
     dir++;
   }
   dirs[lev] = 0;
@@ -200,79 +248,113 @@ void jsonr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev)
   bool nlf = FALSE;
   int mt, t;
 
-  if (dir == NULL) return;
+  if (dir == NULL)
+    return;
 
   dirs[lev] = 1;
-  if (!*(dir+1)) dirs[lev] = 2;
-  if (!noindent) fprintf(outfile,"\n");
+  if (!*(dir + 1))
+    dirs[lev] = 2;
+  if (!noindent)
+    fprintf(outfile, "\n");
 
-  path = malloc(pathsize=4096);
+  path = malloc(pathsize = 4096);
 
-  while(*dir) {
-    if (!noindent) json_indent(lev);
+  while (*dir)
+  {
+    if (!noindent)
+      json_indent(lev);
 
-    if ((*dir)->lnk) mt = (*dir)->mode & S_IFMT;
-    else mt = (*dir)->mode & S_IFMT;
-    for(t=0;ifmt[t];t++)
-      if (ifmt[t] == mt) break;
-    fprintf(outfile,"{\"type\":\"%s\"", ftype[t]);
+    if ((*dir)->lnk)
+      mt = (*dir)->mode & S_IFMT;
+    else
+      mt = (*dir)->mode & S_IFMT;
+    for (t = 0; ifmt[t]; t++)
+      if (ifmt[t] == mt)
+        break;
+    fprintf(outfile, "{\"type\":\"%s\"", ftype[t]);
 
-    if (fflag) {
-      if (sizeof(char) * (strlen(d)+strlen((*dir)->name)+2) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen(d)+strlen((*dir)->name)+1024)));
-      if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-      else sprintf(path,"%s/%s",d,(*dir)->name);
-    } else {
-      if (sizeof(char) * (strlen((*dir)->name)+1) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen((*dir)->name)+1024)));
-      sprintf(path,"%s",(*dir)->name);
+    if (fflag)
+    {
+      if (sizeof(char) * (strlen(d) + strlen((*dir)->name) + 2) > pathsize)
+        path = xrealloc(path, pathsize = (sizeof(char) * (strlen(d) + strlen((*dir)->name) + 1024)));
+      if (!strcmp(d, "/"))
+        sprintf(path, "%s%s", d, (*dir)->name);
+      else
+        sprintf(path, "%s/%s", d, (*dir)->name);
+    }
+    else
+    {
+      if (sizeof(char) * (strlen((*dir)->name) + 1) > pathsize)
+        path = xrealloc(path, pathsize = (sizeof(char) * (strlen((*dir)->name) + 1024)));
+      sprintf(path, "%s", (*dir)->name);
     }
 
     fprintf(outfile, ",\"name\":\"");
-    html_encode(outfile,path);
-    fputc('"',outfile);
+    html_encode(outfile, path);
+    fputc('"', outfile);
 
-    if ((*dir)->lnk) {
+    if ((*dir)->lnk)
+    {
       fprintf(outfile, ",\"target\":\"");
-      html_encode(outfile,(*dir)->lnk);
-      fputc('"',outfile);
+      html_encode(outfile, (*dir)->lnk);
+      fputc('"', outfile);
     }
 
     json_fillinfo(*dir);
-    if (mt != S_IFDIR && mt != S_IFLNK && (*dir)->err == NULL) {
+    if (mt != S_IFDIR && mt != S_IFLNK && (*dir)->err == NULL)
+    {
       fputc('}', outfile);
-      if (*(dir+1)) fputc(',',outfile);
-    } else fprintf(outfile, ",\"contents\":[");
+      if (*(dir + 1))
+        fputc(',', outfile);
+    }
+    else
+      fprintf(outfile, ",\"contents\":[");
 
-    if ((*dir)->err) {
-      fprintf(outfile,",\"error\":\"%s\"", (*dir)->err);
+    if ((*dir)->err)
+    {
+      fprintf(outfile, ",\"error\":\"%s\"", (*dir)->err);
       free((*dir)->err);
       (*dir)->err = NULL;
     }
-    if ((*dir)->child) {
-      if (fflag) {
-	if (strlen(d)+strlen((*dir)->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-	else sprintf(path,"%s/%s",d,(*dir)->name);
+    if ((*dir)->child)
+    {
+      if (fflag)
+      {
+        if (strlen(d) + strlen((*dir)->name) + 2 > pathsize)
+          path = xrealloc(path, pathsize = (strlen(d) + strlen((*dir)->name) + 1024));
+        if (!strcmp(d, "/"))
+          sprintf(path, "%s%s", d, (*dir)->name);
+        else
+          sprintf(path, "%s/%s", d, (*dir)->name);
       }
-      jsonr_listdir((*dir)->child, fflag? path : NULL, dt, ft, lev+1);
+      jsonr_listdir((*dir)->child, fflag ? path : NULL, dt, ft, lev + 1);
       nlf = TRUE;
       *dt += 1;
-    } else {
-      if ((*dir)->isdir) *dt += 1;
-      else *ft += 1;
+    }
+    else
+    {
+      if ((*dir)->isdir)
+        *dt += 1;
+      else
+        *ft += 1;
     }
 
-    if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;
-    if (nlf) {
+    if (*(dir + 1) && !*(dir + 2))
+      dirs[lev] = 2;
+    if (nlf)
+    {
       nlf = FALSE;
-      if (!noindent) json_indent(lev);
+      if (!noindent)
+        json_indent(lev);
     }
-    if (mt == S_IFDIR || mt == S_IFLNK || (*dir)->err != NULL) {
-      fprintf(outfile,"]}");
-      if (*(dir+1)) fputc(',',outfile);
+    if (mt == S_IFDIR || mt == S_IFLNK || (*dir)->err != NULL)
+    {
+      fprintf(outfile, "]}");
+      if (*(dir + 1))
+        fputc(',', outfile);
     }
-    if (!noindent) putc('\n',outfile);
+    if (!noindent)
+      putc('\n', outfile);
     dir++;
   }
   dirs[lev] = 0;
@@ -285,34 +367,46 @@ void json_indent(int maxlevel)
   int i;
 
   fprintf(outfile, "    ");
-  for(i=0; i<maxlevel; i++)
+  for (i = 0; i < maxlevel; i++)
     fprintf(outfile, "  ");
 }
 
 void json_fillinfo(struct _info *ent)
 {
-  #ifdef __USE_FILE_OFFSET64
-  if (inodeflag) fprintf(outfile,",\"inode\":%lld",(long long)ent->inode);
-  #else
-  if (inodeflag) fprintf(outfile,",\"inode\":%ld",(long int)ent->inode);
-  #endif
-  if (devflag) fprintf(outfile, ",\"dev\":%d", (int)ent->dev);
-  #ifdef __EMX__
-  if (pflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s\"",ent->attr, prot(ent->attr));
-  #else
-  if (pflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s\"", ent->mode & (S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID|S_ISGID|S_ISVTX), prot(ent->mode));
-  #endif
-  if (uflag) fprintf(outfile, ",\"user\":\"%s\"", uidtoname(ent->uid));
-  if (gflag) fprintf(outfile, ",\"group\":\"%s\"", gidtoname(ent->gid));
-  if (sflag) {
-    if (hflag || siflag) {
+#ifdef __USE_FILE_OFFSET64
+  if (inodeflag)
+    fprintf(outfile, ",\"inode\":%lld", (long long)ent->inode);
+#else
+  if (inodeflag)
+    fprintf(outfile, ",\"inode\":%ld", (long int)ent->inode);
+#endif
+  if (devflag)
+    fprintf(outfile, ",\"dev\":%d", (int)ent->dev);
+#ifdef __EMX__
+  if (pflag)
+    fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s\"", ent->attr, prot(ent->attr));
+#else
+  if (pflag)
+    fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s\"", ent->mode & (S_IRWXU | S_IRWXG | S_IRWXO | S_ISUID | S_ISGID | S_ISVTX), prot(ent->mode));
+#endif
+  if (uflag)
+    fprintf(outfile, ",\"user\":\"%s\"", uidtoname(ent->uid));
+  if (gflag)
+    fprintf(outfile, ",\"group\":\"%s\"", gidtoname(ent->gid));
+  if (sflag)
+  {
+    if (hflag || siflag)
+    {
       char nbuf[64];
       int i;
-      psize(nbuf,ent->size);
-      for(i=0; isspace(nbuf[i]); i++);	// trim() hack
-      fprintf(outfile, ",\"size\":\"%s\"", nbuf+i);
-    } else
+      psize(nbuf, ent->size);
+      for (i = 0; isspace(nbuf[i]); i++)
+        ; // trim() hack
+      fprintf(outfile, ",\"size\":\"%s\"", nbuf + i);
+    }
+    else
       fprintf(outfile, ",\"size\":%lld", (long long int)ent->size);
   }
-  if (Dflag) fprintf(outfile, ",\"time\":\"%s\"", do_date(cflag? ent->ctime : ent->mtime));
+  if (Dflag)
+    fprintf(outfile, ",\"time\":\"%s\"", do_date(cflag ? ent->ctime : ent->mtime));
 }

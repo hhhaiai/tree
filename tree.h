@@ -33,22 +33,22 @@
 #include <limits.h>
 #include <pwd.h>
 #include <grp.h>
-#ifdef __EMX__  /* for OS/2 systems */
-#  define INCL_DOSFILEMGR
-#  define INCL_DOSNLS
-#  include <os2.h>
-#  include <sys/nls.h>
-#  include <io.h>
-  /* On many systems stat() function is idential to lstat() function.
-   * But the OS/2 does not support symbolic links and doesn't have lstat() function.
-   */
-#  define         lstat          stat
-#  define         strcasecmp     stricmp
-  /* Following two functions, getcwd() and chdir() don't support for drive letters.
-   * To implement support them, use _getcwd2() and _chdir2().
-   */
-#  define getcwd _getcwd2
-#  define chdir _chdir2
+#ifdef __EMX__ /* for OS/2 systems */
+#define INCL_DOSFILEMGR
+#define INCL_DOSNLS
+#include <os2.h>
+#include <sys/nls.h>
+#include <io.h>
+/* On many systems stat() function is idential to lstat() function.
+ * But the OS/2 does not support symbolic links and doesn't have lstat() function.
+ */
+#define lstat stat
+#define strcasecmp stricmp
+/* Following two functions, getcwd() and chdir() don't support for drive letters.
+ * To implement support them, use _getcwd2() and _chdir2().
+ */
+#define getcwd _getcwd2
+#define chdir _chdir2
 #endif
 
 #include <locale.h>
@@ -57,21 +57,26 @@
 #include <wctype.h>
 
 #ifdef __ANDROID
-#define mbstowcs(w,m,x) mbsrtowcs(w,(const char**)(& #m),x,NULL)
+#define mbstowcs(w, m, x) mbsrtowcs(w, (const char **)(&#m), x, NULL)
 #endif
 
 /* Should probably use strdup(), but we like our xmalloc() */
-#define scopy(x)	strcpy(xmalloc(strlen(x)+1),(x))
-#define MINIT		30	/* number of dir entries to initially allocate */
-#define MINC		20	/* allocation increment */
+#define scopy(x) strcpy(xmalloc(strlen(x) + 1), (x))
+#define MINIT 30 /* number of dir entries to initially allocate */
+#define MINC 20  /* allocation increment */
 
 #ifndef TRUE
-typedef enum {FALSE=0, TRUE} bool;
+typedef enum
+{
+  FALSE = 0,
+  TRUE
+} bool;
 #else
 typedef int bool;
 #endif
 
-struct _info {
+struct _info
+{
   char *name;
   char *lnk;
   bool isdir;
@@ -86,34 +91,39 @@ struct _info {
   time_t atime, ctime, mtime;
   dev_t dev, ldev;
   ino_t inode, linode;
-  #ifdef __EMX__
+#ifdef __EMX__
   long attr;
-  #endif
+#endif
   char *err;
   struct _info **child, *next, *tchild;
 };
 /* hash.c */
-struct xtable {
+struct xtable
+{
   unsigned int xid;
   char *name;
   struct xtable *nxt;
 };
-struct inotable {
+struct inotable
+{
   ino_t inode;
   dev_t device;
   struct inotable *nxt;
 };
 
 /* color.c */
-struct colortable {
+struct colortable
+{
   char *term_flg, *CSS_name, *font_fg, *font_bg;
 };
-struct extensions {
+struct extensions
+{
   char *ext;
   char *term_flg, *CSS_name, *web_fg, *web_bg, *web_extattr;
   struct extensions *nxt;
 };
-struct linedraw {
+struct linedraw
+{
   const char **name, *vert, *vert_left, *corner, *copy;
 };
 
@@ -189,6 +199,6 @@ void saveino(ino_t, dev_t);
 struct _info **file_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 
 /* We use the strverscmp.c file if we're not linux */
-#if ! defined (LINUX)
-int strverscmp (const char *s1, const char *s2);
+#if !defined(LINUX)
+int strverscmp(const char *s1, const char *s2);
 #endif
